@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Join EasyYap 💬</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#F5F5F5; height:100dvh; display:flex; align-items:center; justify-content:center; }
+.wrap { text-align:center; padding:32px 24px; max-width:400px; width:100%; }
+.logo { font-size:64px; margin-bottom:10px; }
+.title { font-size:30px; font-weight:900; color:#5C6BC0; margin-bottom:8px; }
+.card { background:#fff; border-radius:20px; padding:24px 20px; margin:20px 0; box-shadow:0 4px 20px rgba(0,0,0,0.08); text-align:left; }
+.card h2 { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:8px; }
+.card p { font-size:17px; color:#555; line-height:1.6; }
+.inviter-av { width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; color:#fff; margin:0 auto 12px; }
+.label { font-size:14px; font-weight:700; color:#777; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; display:block; }
+.input { width:100%; padding:14px 16px; border:2px solid #e0e0e0; border-radius:14px; font-size:18px; font-family:inherit; outline:none; transition:border-color 0.2s; margin-bottom:14px; }
+.input:focus { border-color:#5C6BC0; }
+.btn { width:100%; padding:18px; border:none; border-radius:16px; font-size:20px; font-family:inherit; font-weight:800; cursor:pointer; transition:transform 0.1s; }
+.btn:active { transform:scale(0.97); }
+.btn-primary { background:#5C6BC0; color:#fff; }
+.btn-secondary { background:#e0e0e0; color:#333; margin-top:10px; }
+.spinner { display:inline-block; width:36px; height:36px; border:4px solid #e0e0e0; border-top-color:#5C6BC0; border-radius:50%; animation:spin 0.7s linear infinite; margin:20px 0; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.success { background:#E8F5E9; border:2px solid #81C784; border-radius:14px; padding:16px; color:#2E7D32; font-size:17px; line-height:1.6; margin-bottom:14px; }
+.error { background:#ffebee; border:2px solid #ef9a9a; border-radius:14px; padding:16px; color:#c62828; font-size:17px; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">💬</div>
+  <div class="title">EasyYap</div>
+
+  <!-- Loading state -->
+  <div id="state-loading">
+    <div class="spinner"></div>
+    <p style="color:#777;font-size:17px;">Loading your invitation…</p>
+  </div>
+
+  <!-- Invite found -->
+  <div id="state-invite" style="display:none;">
+    <div class="card">
+      <div class="inviter-av" id="inviter-av"></div>
+      <h2 id="invite-heading" style="text-align:center;"></h2>
+      <p id="invite-sub" style="text-align:center;margin-bottom:20px;"></p>
+      <span class="label">Enter your email to join</span>
+      <input class="input" type="email" id="join-email" placeholder="your@email.com" autocomplete="email" inputmode="email">
+      <button class="btn btn-primary" onclick="joinEasyYap()">✉️ Send me a login link</button>
+    </div>
+    <p style="font-size:14px;color:#999;line-height:1.5;">We'll email you a magic link — just tap it to join. No password needed!</p>
+  </div>
+
+  <!-- Email sent -->
+  <div id="state-sent" style="display:none;">
+    <div class="card">
+      <div class="success">
+        📧 <strong>Check your email!</strong><br><br>
+        We sent a login link to <strong id="sent-to"></strong>.<br><br>
+        Just tap the link and you'll be in EasyYap! 😊<br><br>
+        <span style="font-size:15px;opacity:0.8;">Can't find it? Check your spam folder.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error state -->
+  <div id="state-error" style="display:none;">
+    <div class="card">
+      <div class="error" id="error-msg"></div>
+      <a href="/" style="display:block;text-align:center;margin-top:14px;color:#5C6BC0;font-weight:700;font-size:17px;">← Go to EasyYap</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://nasjirsjizhtrzjovfjq.supabase.co';
+const SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hc2ppcnNqaXpodHJ6am92ZmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MDcxMDYsImV4cCI6MjA5MTM4MzEwNn0.xuRI3xwxdMVDK8FX1ABIwNT4CXLyAHxYZWKmZTYL4Gw
+;
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const code = window.location.pathname.split('/').pop();
+let inviteData = null;
+
+function showState(s){
+  ['loading','invite','sent','error'].forEach(id=>{
+    document.getElementById('state-'+id).style.display=id===s?'block':'none';
+  });
+}
+
+function initials(name){ return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+
+async function loadInvite(){
+  try {
+    const res = await fetch(`/api/invites/${code}`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Invite not found');
+    inviteData = data;
+
+    // Show invite UI
+    document.getElementById('inviter-av').style.background = data.invited_by_color || '#5C6BC0';
+    document.getElementById('inviter-av').textContent = initials(data.invited_by);
+    document.getElementById('invite-heading').textContent = data.invitee_name
+      ? `Hi ${data.invitee_name}! 👋`
+      : 'You\'re invited! 👋';
+    document.getElementById('invite-sub').textContent =
+      `${data.invited_by} has invited you to join EasyYap — a simple, easy-to-use family chat app.`;
+    showState('invite');
+  } catch(e){
+    document.getElementById('error-msg').textContent = e.message;
+    showState('error');
+  }
+}
+
+async function joinEasyYap(){
+  const email = document.getElementById('join-email').value.trim();
+  if(!email || !email.includes('@')){
+    alert('Please enter a valid email address');
+    return;
+  }
+  const btn = document.querySelector('.btn-primary');
+  btn.disabled=true; btn.textContent='Sending…';
+  try {
+    const { error } = await _supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?invite=${code}`,
+        shouldCreateUser: true
+      }
+    });
+    if(error) throw error;
+
+    // Mark invite as used (they'll be auto-added as contacts after login)
+    // We store the invite code in localStorage so auth-callback can use it
+    localStorage.setItem('pendingInvite', code);
+
+    document.getElementById('sent-to').textContent = email;
+    showState('sent');
+  } catch(e){
+    btn.disabled=false; btn.textContent='✉️ Send me a login link';
+    alert('Something went wrong: ' + e.message);
+  }
+}
+
+loadInvite();
+</script>
+</body>
+</html>

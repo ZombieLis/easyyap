@@ -1,0 +1,165 @@
+# EasyYap — Complete Setup Guide
+# Follow these steps in order. Each one takes only a few minutes.
+
+═══════════════════════════════════════════════════════════
+STEP 1 — GET YOUR SUPABASE KEYS (5 minutes)
+═══════════════════════════════════════════════════════════
+
+1. Go to https://supabase.com and sign in
+2. Open your EasyYap project
+3. Click "Project Settings" (gear icon, bottom left)
+4. Click "API" in the left menu
+5. You'll see two keys — copy both:
+   - "anon public" key  → this is your SUPABASE_ANON_KEY
+   - "service_role" key → this is your SUPABASE_SERVICE_KEY
+   ⚠️  NEVER share the service_role key with anyone
+
+═══════════════════════════════════════════════════════════
+STEP 2 — SET UP THE DATABASE (3 minutes)
+═══════════════════════════════════════════════════════════
+
+1. In Supabase, click "SQL Editor" in the left menu
+2. Click "New query"
+3. Open the file "supabase-schema.sql" from this folder
+4. Copy ALL the text in that file
+5. Paste it into the Supabase SQL editor
+6. Click "Run" (the green button)
+7. You should see "Success. No rows returned" — that's correct!
+
+═══════════════════════════════════════════════════════════
+STEP 3 — CREATE STORAGE BUCKET (2 minutes)
+═══════════════════════════════════════════════════════════
+
+1. In Supabase, click "Storage" in the left menu
+2. Click "New bucket"
+3. Name it exactly: easyyap-media
+4. Turn ON "Public bucket" (so photos can be displayed)
+5. Click "Create bucket"
+
+═══════════════════════════════════════════════════════════
+STEP 4 — SET UP MAGIC LINK EMAIL (2 minutes)
+═══════════════════════════════════════════════════════════
+
+1. In Supabase, go to "Authentication" → "URL Configuration"
+2. Under "Site URL", enter your app's URL (once you have it from Railway)
+   For now, enter: http://localhost:3000
+3. Under "Redirect URLs", add: http://localhost:3000/auth/callback
+4. Click Save
+
+═══════════════════════════════════════════════════════════
+STEP 5 — ADD YOUR KEYS TO THE APP (5 minutes)
+═══════════════════════════════════════════════════════════
+
+A) Create your .env file:
+   - Copy ".env.example" and rename the copy to ".env"
+   - Open .env and fill in your keys:
+     SUPABASE_URL=https://nasjirsjizhtrzjovfjq.supabase.co
+     SUPABASE_SERVICE_KEY=paste_your_service_role_key_here
+     SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hc2ppcnNqaXpodHJ6am92ZmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MDcxMDYsImV4cCI6MjA5MTM4MzEwNn0.xuRI3xwxdMVDK8FX1ABIwNT4CXLyAHxYZWKmZTYL4Gw
+
+     PORT=3000
+     APP_URL=http://localhost:3000
+
+B) Add anon key to the frontend files:
+   In these 3 files, find the line:
+     const SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hc2ppcnNqaXpodHJ6am92ZmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MDcxMDYsImV4cCI6MjA5MTM4MzEwNn0.xuRI3xwxdMVDK8FX1ABIwNT4CXLyAHxYZWKmZTYL4Gw
+     ;
+   And replace it with your actual anon key.
+   
+   Files to update:
+   - public/index.html
+   - public/auth-callback.html
+   - public/invite.html
+
+═══════════════════════════════════════════════════════════
+STEP 6 — TEST LOCALLY (5 minutes)
+═══════════════════════════════════════════════════════════
+
+1. Open a terminal / command prompt
+2. Navigate to this folder:
+   cd path/to/easyyap
+3. Install dependencies:
+   npm install
+4. Start the server:
+   npm start
+5. Open your browser to: http://localhost:3000
+6. You should see the EasyYap login screen!
+7. Enter your email and tap "Send me a login link"
+8. Check your email and tap the link
+
+═══════════════════════════════════════════════════════════
+STEP 7 — DEPLOY TO RAILWAY (10 minutes)
+═══════════════════════════════════════════════════════════
+
+Railway hosts your app online so anyone can access it.
+
+A) Push your code to GitHub:
+   1. Go to https://github.com and sign in as ZombieLis
+   2. Click "New repository"
+   3. Name it: easyyap
+   4. Set to Private (recommended)
+   5. Click "Create repository"
+   6. Follow GitHub's instructions to push your code
+
+B) Deploy on Railway:
+   1. Go to https://railway.app
+   2. Sign in with GitHub
+   3. Click "New Project"
+   4. Click "Deploy from GitHub repo"
+   5. Select your "easyyap" repository
+   6. Railway will detect it's a Node.js app automatically
+
+C) Add environment variables in Railway:
+   1. In your Railway project, click "Variables"
+   2. Add each variable from your .env file:
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY  
+      - SUPABASE_ANON_KEY
+      - APP_URL (set this to your Railway URL, e.g. https://easyyap.up.railway.app)
+
+D) Get your live URL:
+   1. Click "Settings" in Railway
+   2. Under "Domains", click "Generate Domain"
+   3. Copy your URL (e.g. https://easyyap-production.up.railway.app)
+
+E) Update Supabase with your live URL:
+   1. Back in Supabase → Authentication → URL Configuration
+   2. Update "Site URL" to your Railway URL
+   3. Add your Railway URL + /auth/callback to "Redirect URLs"
+   4. In Railway Variables, update APP_URL to your Railway URL
+   5. Also update SUPABASE_ANON_KEY in the 3 HTML files, commit, and push
+
+═══════════════════════════════════════════════════════════
+STEP 8 — INVITE YOUR FIRST TESTER
+═══════════════════════════════════════════════════════════
+
+1. Open EasyYap on your live Railway URL
+2. Log in with your email
+3. Tap the 👤＋ button (top right)
+4. Choose how to invite them
+5. They tap the link, enter their email, and they're in!
+6. They'll appear in your contacts automatically
+7. Start a chat and test away!
+
+═══════════════════════════════════════════════════════════
+TROUBLESHOOTING
+═══════════════════════════════════════════════════════════
+
+❓ Magic link email not arriving?
+   → Check spam folder
+   → In Supabase → Authentication → check email settings
+   → Supabase free tier sends up to 3 emails/hour per IP during testing
+
+❓ "Invalid redirect URL" error?
+   → Make sure your URL is in Supabase → Auth → Redirect URLs
+
+❓ Photos not uploading?
+   → Make sure the "easyyap-media" storage bucket exists and is Public
+
+❓ Messages not appearing in real-time?
+   → Check that supabase_realtime was set up (the ALTER PUBLICATION lines in the SQL)
+
+═══════════════════════════════════════════════════════════
+YOUR SUPABASE URL (already filled in):
+https://nasjirsjizhtrzjovfjq.supabase.co
+═══════════════════════════════════════════════════════════

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EasyYap — Logging you in…</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#F5F5F5; height:100dvh; display:flex; align-items:center; justify-content:center; }
+.wrap { text-align:center; padding:32px 24px; max-width:380px; }
+.logo { font-size:64px; margin-bottom:16px; }
+.title { font-size:28px; font-weight:800; color:#5C6BC0; margin-bottom:12px; }
+.msg { font-size:18px; color:#555; line-height:1.6; }
+.spinner { display:inline-block; width:36px; height:36px; border:4px solid #e0e0e0; border-top-color:#5C6BC0; border-radius:50%; animation:spin 0.7s linear infinite; margin:20px 0; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.error { background:#ffebee; border:2px solid #ef9a9a; border-radius:14px; padding:16px; color:#c62828; margin-top:16px; font-size:16px; line-height:1.5; }
+.btn { display:inline-block; margin-top:18px; padding:14px 28px; background:#5C6BC0; color:#fff; border-radius:14px; font-size:18px; font-weight:700; text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">💬</div>
+  <div class="title">EasyYap</div>
+  <div class="spinner"></div>
+  <p class="msg" id="msg">Logging you in…<br>Just a moment! 😊</p>
+  <div id="error-box" style="display:none;"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://nasjirsjizhtrzjovfjq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hc2ppcnNqaXpodHJ6am92ZmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MDcxMDYsImV4cCI6MjA5MTM4MzEwNn0.xuRI3xwxdMVDK8FX1ABIwNT4CXLyAHxYZWKmZTYL4Gw';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function handleCallback() {
+  try {
+    // Get the full URL hash and params
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const queryParams = new URLSearchParams(window.location.search);
+
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+    const code = queryParams.get('code');
+
+    if (accessToken) {
+      // Set the session directly from the token in the URL
+      const { data, error } = await supabaseClient.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      });
+      if (error) throw error;
+      document.getElementById('msg').textContent = "You're in! 🎉 Taking you to EasyYap…";
+      setTimeout(() => { window.location.href = '/'; }, 1500);
+
+    } else if (code) {
+      // Exchange the code for a session
+      const { data, error } = await supabaseClient.auth.exchangeCodeForSession(code);
+      if (error) throw error;
+      document.getElementById('msg').textContent = "You're in! 🎉 Taking you to EasyYap…";
+      setTimeout(() => { window.location.href = '/'; }, 1500);
+
+    } else {
+      // Try getting existing session
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (data?.session) {
+        document.getElementById('msg').textContent = "You're in! 🎉 Taking you to EasyYap…";
+        setTimeout(() => { window.location.href = '/'; }, 1500);
+      } else {
+        throw new Error('No login token found — please try requesting a new link.');
+      }
+    }
+  } catch(e) {
+    document.querySelector('.spinner').style.display = 'none';
+    document.getElementById('msg').textContent = 'Something went wrong.';
+    document.getElementById('error-box').style.display = 'block';
+    document.getElementById('error-box').innerHTML = 
+      `<div class="error">${e.message}</div>
+       <a class="btn" href="/">← Try again</a>`;
+  }
+}
+
+handleCallback();
+</script>
+</body>
+</html>
