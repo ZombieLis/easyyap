@@ -530,6 +530,7 @@ input[type=range] { width:100%; accent-color:var(--primary); }
 
 <!-- Toast notification -->
 <div class="toast" id="toast"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ════════════════════════════════════════════
@@ -567,6 +568,7 @@ let wordBank = ['Jayson'];
 let recognition = null, isRecording = false, rawText = '', correctedText = '';
 let pendingMsg = '', pendingType = 'text';
 let voiceMode = 'text';
+let mediaRecorder = null, audioChunks = [];
 let newChatSel = [];
 let inviteMethod = 'copy';
 let dark = false;
@@ -651,7 +653,7 @@ async function signOut(){
 }
 
 // ════════════════════════════════════════════
-//  BOOT — called once user is authenticated
+//  BOOT
 // ════════════════════════════════════════════
 async function boot(sess){
   session = sess;
@@ -679,11 +681,9 @@ function subscribeRealtime(){
     .channel('easyyap-realtime')
     .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages' }, payload => {
       const msg = payload.new;
-      // Only handle if it's in a chat we know and wasn't sent by us
       if(msg.sender_id === myProfile.id) return;
       const chat = chats.find(c=>c.id===msg.chat_id);
       if(!chat) { refreshChats(); return; }
-      // Add sender profile info if needed
       const sender = contacts.find(c=>c.id===msg.sender_id) || { id:msg.sender_id, display_name:'Someone', avatar_color:'#5C6BC0' };
       msg.profiles = sender;
       if(!chat._messages) chat._messages = [];
@@ -771,7 +771,6 @@ async function openChat(id){
   } else { chipsEl.style.display='none'; }
   document.getElementById('messages').innerHTML='<div style="text-align:center;padding:20px;color:var(--text-muted)"><div class="loading-spinner"></div></div>';
   showScreen('screen-chat');
-  // Load messages
   try {
     const msgs = await api(`/api/chats/${id}/messages?limit=60`);
     chat._messages = msgs;
@@ -785,9 +784,7 @@ function renderMessages(chat){
   const av=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--avatar-size'))||60;
   const msgs=chat._messages||[];
   let html='<div class="date-divider">'+fmtDate(msgs[0]?.created_at||new Date().toISOString())+'</div>';
-  msgs.forEach(m=>{
-    html+=buildMsgHtml(m, av);
-  });
+  msgs.forEach(m=>{ html+=buildMsgHtml(m, av); });
   const el=document.getElementById('messages');
   el.innerHTML=html; el.scrollTop=el.scrollHeight;
 }
@@ -804,9 +801,16 @@ function buildMsgHtml(m, av){
   else if(m.type==='voice'){
     const bh=[10,18,12,26,14,22,8,20,12,18,10,24,14,20,10];
     const bars=bh.map(h=>`<div class="vbar" style="height:${h}px"></div>`).join('');
-    const safeId='vm_'+m.id;
-    window[safeId]=m.text;
-    bubble=`<div class="bubble voice-bubble"><button class="play-btn" onclick="speakById('${safeId}')">&#9654;</button><div class="voice-bars">${bars}</div><span class="voice-dur">${m.duration||'0:10'}</span></div>`;
+    if(m.media_url){
+      // ✅ Real audio recording — play the actual file
+      const safeUrl = m.media_url.replace(/'/g, "\\'");
+      bubble=`<div class="bubble voice-bubble"><button class="play-btn" onclick="playAudio('${safeUrl}',this)">&#9654;</button><div class="voice-bars">${bars}</div><span class="voice-dur">${m.duration||'0:10'}</span></div>`;
+    } else {
+      // Fallback for old messages that only stored text (uses AI voice)
+      const safeId='vm_'+m.id;
+      window[safeId]=m.text;
+      bubble=`<div class="bubble voice-bubble"><button class="play-btn" onclick="speakById('${safeId}')">&#9654;</button><div class="voice-bars">${bars}</div><span class="voice-dur">${m.duration||'0:10'}</span></div>`;
+    }
   }
   return `<div class="msg-row ${mine?'mine':'other'}">
     ${!mine?avHtml:''}
@@ -917,7 +921,7 @@ function closeEmoji(){document.getElementById('emoji-overlay').classList.remove(
 function insertEmoji(e){document.getElementById('msg-input').value+=e;closeEmoji();}
 
 // ════════════════════════════════════════════
-//  VOICE
+//  VOICE — FIXED: now records and plays real audio
 // ════════════════════════════════════════════
 function toggleVoice(){
   if(isRecording){stopRecording();return;}
@@ -927,39 +931,113 @@ function closeVoiceMode(){document.getElementById('voice-mode-overlay').classLis
 function startVoiceMode(mode){ voiceMode=mode; closeVoiceMode(); startRecording(); }
 
 function startRecording(){
-  rawText='';correctedText='';
+  rawText=''; correctedText=''; audioChunks=[];
   document.getElementById('voice-transcript').textContent='Speak now — your words will appear here';
   document.getElementById('voice-status').textContent='Listening…';
   document.getElementById('spell-area').classList.remove('show');
   document.getElementById('voice-main-btns').style.display='flex';
   document.getElementById('rec-icon').style.display='block';
   document.getElementById('rec-icon').textContent=voiceMode==='voice'?'🎙️':'🎤';
-  document.getElementById('voice-mode-badge').textContent=voiceMode==='voice'?'🎙️ Recording voice message':'💬 Recording voice-to-text';
+  document.getElementById('voice-mode-badge').textContent=voiceMode==='voice'?'🎙️ Recording your voice':'💬 Recording voice-to-text';
   document.getElementById('voice-overlay').classList.add('show');
-  isRecording=true; document.getElementById('mic-btn').classList.add('active');
+  isRecording=true;
+  document.getElementById('mic-btn').classList.add('active');
+
+  // Always run speech recognition so the transcript shows what you said
   if('SpeechRecognition' in window||'webkitSpeechRecognition' in window){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     recognition=new SR(); recognition.continuous=true; recognition.interimResults=true; recognition.lang='en-AU';
-    recognition.onresult=ev=>{let fin='',it='';for(let i=ev.resultIndex;i<ev.results.length;i++){if(ev.results[i].isFinal)fin+=ev.results[i][0].transcript;else it+=ev.results[i][0].transcript;}rawText+=fin;document.getElementById('voice-transcript').textContent=rawText+(it?' '+it:'');};
-    recognition.onerror=()=>{document.getElementById('voice-transcript').textContent=rawText||'(Could not hear — check microphone permissions)';};
+    recognition.onresult=ev=>{
+      let fin='',it='';
+      for(let i=ev.resultIndex;i<ev.results.length;i++){
+        if(ev.results[i].isFinal) fin+=ev.results[i][0].transcript;
+        else it+=ev.results[i][0].transcript;
+      }
+      rawText+=fin;
+      document.getElementById('voice-transcript').textContent=rawText+(it?' '+it:'');
+    };
+    recognition.onerror=()=>{
+      document.getElementById('voice-transcript').textContent=rawText||'(Could not hear — check microphone permissions)';
+    };
     recognition.start();
-  } else { document.getElementById('voice-transcript').textContent='(Speech recognition not available — Chrome works best)'; }
+  } else {
+    document.getElementById('voice-transcript').textContent='(Speech recognition not available — Chrome works best)';
+  }
+
+  // If voice message mode, ALSO capture real audio with MediaRecorder
+  if(voiceMode==='voice'){
+    navigator.mediaDevices.getUserMedia({audio:true})
+      .then(stream=>{
+        mediaRecorder=new MediaRecorder(stream);
+        mediaRecorder.ondataavailable=e=>{ if(e.data.size>0) audioChunks.push(e.data); };
+        mediaRecorder.start();
+      })
+      .catch(()=>{
+        toast('Microphone access denied — please allow mic access and try again');
+        cancelVoice();
+      });
+  }
 }
 
 function stopRecording(){
   if(recognition){recognition.stop();recognition=null;}
-  isRecording=false; document.getElementById('mic-btn').classList.remove('active');
-  const text=rawText.trim()||document.getElementById('voice-transcript').textContent.trim();
-  if(!text||text.startsWith('(')||text==='Speak now — your words will appear here'){cancelVoice();return;}
-  rawText=text;
+  isRecording=false;
+  document.getElementById('mic-btn').classList.remove('active');
+
   if(voiceMode==='voice'){
-    document.getElementById('voice-overlay').classList.remove('show');
-    finishVoiceSend(rawText);
+    // Stop MediaRecorder and upload the real audio file
+    if(mediaRecorder && mediaRecorder.state!=='inactive'){
+      mediaRecorder.onstop=async()=>{
+        // Release the microphone
+        mediaRecorder.stream.getTracks().forEach(t=>t.stop());
+        if(!audioChunks.length){ cancelVoice(); return; }
+        document.getElementById('voice-status').textContent='Sending…';
+        document.getElementById('voice-main-btns').style.display='none';
+        try {
+          const blob=new Blob(audioChunks,{type:'audio/webm'});
+          const dur=calcDuration(blob.size);
+          const b64=await blobToBase64(blob);
+          const {url}=await api(`/api/chats/${currentChatId}/media`,'POST',{
+            image_base64:b64,
+            mime_type:'audio/webm'
+          });
+          document.getElementById('voice-overlay').classList.remove('show');
+          sendMessage({type:'voice', media_url:url, text:rawText||'', duration:dur});
+        } catch(e){
+          toast('Could not upload voice message: '+e.message);
+          document.getElementById('voice-overlay').classList.remove('show');
+        }
+        audioChunks=[];
+      };
+      mediaRecorder.stop();
+    } else {
+      cancelVoice();
+    }
   } else {
+    // Voice-to-text mode — spell check and review
+    const text=rawText.trim()||document.getElementById('voice-transcript').textContent.trim();
+    if(!text||text.startsWith('(')||text==='Speak now — your words will appear here'){ cancelVoice(); return; }
+    rawText=text;
     document.getElementById('voice-status').textContent='Checking…';
     document.getElementById('voice-main-btns').style.display='none';
     doVoiceSpell(text);
   }
+}
+
+// Convert a Blob to a base64 string for uploading
+function blobToBase64(blob){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(r.result.split(',')[1]);
+    r.onerror=reject;
+    r.readAsDataURL(blob);
+  });
+}
+
+// Estimate duration from file size (webm audio ~15KB/sec)
+function calcDuration(byteSize){
+  const secs=Math.max(1,Math.round(byteSize/15000));
+  return secs<60?`0:${String(secs).padStart(2,'0')}`:`${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`;
 }
 
 function doVoiceSpell(text){
@@ -971,35 +1049,41 @@ function doVoiceSpell(text){
 }
 
 function sendVoice(send){
+  document.getElementById('voice-overlay').classList.remove('show');
+  document.getElementById('spell-area').classList.remove('show');
   if(!send){
-    document.getElementById('voice-overlay').classList.remove('show');
-    document.getElementById('spell-area').classList.remove('show');
     pendingMsg=correctedText; pendingType='text';
     document.getElementById('edit-area').value=correctedText;
     document.getElementById('edit-overlay').classList.add('show');
   } else {
-    document.getElementById('voice-overlay').classList.remove('show');
-    document.getElementById('spell-area').classList.remove('show');
     pendingMsg=correctedText; pendingType='text';
     if(looksOdd(correctedText)) showGrammarDialog(correctedText);
     else commitSendText(correctedText);
   }
 }
 
-function finishVoiceSend(text){
-  const secs=Math.max(2,Math.round(text.length/8));
-  const dur=secs<60?`0:${String(secs).padStart(2,'0')}`:`${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`;
-  sendMessage({type:'voice',text,duration:dur});
-  setTimeout(()=>speak(text),400);
-}
-
 function cancelVoice(){
   if(recognition){recognition.stop();recognition=null;}
+  if(mediaRecorder && mediaRecorder.state!=='inactive'){
+    mediaRecorder.stream?.getTracks().forEach(t=>t.stop());
+    mediaRecorder.stop();
+  }
+  mediaRecorder=null; audioChunks=[];
   isRecording=false;
   document.getElementById('mic-btn').classList.remove('active');
   document.getElementById('voice-overlay').classList.remove('show');
 }
 
+// Play a real audio file when the play button is tapped
+function playAudio(url, btn){
+  const audio=new Audio(url);
+  btn.textContent='⏸';
+  audio.play().catch(()=>{ btn.innerHTML='&#9654;'; toast('Could not play audio'); });
+  audio.onended=()=>{ btn.innerHTML='&#9654;'; };
+  audio.onerror=()=>{ btn.innerHTML='&#9654;'; toast('Could not play audio'); };
+}
+
+// Fallback for old messages: read text with AI voice
 function speakById(id){ speak(window[id]||''); }
 function speak(text){
   if(!text||!('speechSynthesis' in window)) return;
@@ -1015,8 +1099,7 @@ function speak(text){
 // ════════════════════════════════════════════
 function openNewChat(){
   newChatSel=[];
-  renderNewChatContacts();
-  renderChips();
+  renderNewChatContacts(); renderChips();
   document.getElementById('new-group-name').value='';
   document.getElementById('group-name-row').style.display='none';
   document.getElementById('create-btn').disabled=true;
@@ -1174,7 +1257,6 @@ async function showInviteStep(method){
 }
 async function updateInvitePreview(){
   const name=document.getElementById('invite-name').value.trim();
-  // Generate a real invite link
   try {
     const invite=await api('/api/invites','POST',{invitee_name:name||null});
     const inviteText=buildInviteText(name,invite.invite_url);
@@ -1195,7 +1277,6 @@ function buildInviteText(name, url){
 async function sendInvite(){
   const text=document.getElementById('invite-preview').dataset.text||document.getElementById('invite-preview').textContent;
   const url=document.getElementById('invite-preview').dataset.url||window.location.origin;
-  const name=document.getElementById('invite-name').value.trim();
   if(inviteMethod==='copy'){
     try { await navigator.clipboard.writeText(text); } catch(e){ fallbackCopy(text); return; }
     const btn=document.getElementById('invite-action-btn');
@@ -1297,32 +1378,14 @@ function buildEmoji(){const g=document.getElementById('emoji-grid');EMOJIS.forEa
 function buildGifs(){const g=document.getElementById('gif-grid');GIFS.forEach(({e,l})=>{const d=document.createElement('div');d.className='gif-item';d.innerHTML=`${e}<span class="glabel">${l}</span>`;d.onclick=()=>sendGif(e);g.appendChild(d);});}
 
 // ════════════════════════════════════════════
-//  SUPABASE AUTH LISTENER — BOOT ENTRY POINT
+//  INIT
 // ════════════════════════════════════════════
-supabaseClient.auth.onAuthStateChange(async (event, sess) => {
-  if(sess) {
-    await boot(sess);
-  } else {
-    showScreen('screen-login');
-  }
-});
-
-// Also handle magic link callback (hash fragment from email link)
-(async () => {
-  const hash = window.location.hash;
-  if(hash.includes('access_token') || hash.includes('type=magiclink')) {
-    const { data, error } = await supabaseClient.auth.getSession();
-    if(data?.session) await boot(data.session);
-  }
-})();
-
-// ── Init static parts
 function initApp(){
   buildSwatches(); buildEmoji(); buildGifs();
   if('speechSynthesis' in window) window.speechSynthesis.getVoices();
-  
+
   supabaseClient.auth.onAuthStateChange(async (event, sess) => {
-    if(sess){ await boot(sess); } 
+    if(sess){ await boot(sess); }
     else { showScreen('screen-login'); }
   });
 
