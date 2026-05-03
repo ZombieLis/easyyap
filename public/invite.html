@@ -14,9 +14,10 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 .card h2 { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:8px; }
 .card p { font-size:17px; color:#555; line-height:1.6; margin-bottom:20px; }
 .label { font-size:14px; font-weight:700; color:#777; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; display:block; text-align:left; }
-.input { width:100%; padding:16px; border:2px solid #e0e0e0; border-radius:14px; font-size:18px; font-family:inherit; outline:none; margin-bottom:14px; }
+.input { width:100%; padding:16px; border:2px solid #e0e0e0; border-radius:14px; font-size:18px; font-family:inherit; outline:none; margin-bottom:14px; transition:border-color 0.2s; }
 .input:focus { border-color:#5C6BC0; }
-.btn { width:100%; padding:18px; border:none; border-radius:16px; font-size:20px; font-family:inherit; font-weight:800; cursor:pointer; background:#5C6BC0; color:#fff; margin-bottom:10px; }
+.btn { width:100%; padding:18px; border:none; border-radius:16px; font-size:20px; font-family:inherit; font-weight:800; cursor:pointer; background:#5C6BC0; color:#fff; margin-bottom:10px; transition:opacity 0.15s; }
+.btn:disabled { opacity:0.5; cursor:not-allowed; }
 .success { background:#E8F5E9; border:2px solid #81C784; border-radius:14px; padding:16px; color:#2E7D32; font-size:17px; line-height:1.6; margin-bottom:14px; }
 .error { background:#ffebee; border:2px solid #ef9a9a; border-radius:14px; padding:16px; color:#c62828; font-size:17px; line-height:1.5; }
 .spinner { display:inline-block; width:36px; height:36px; border:4px solid #e0e0e0; border-top-color:#5C6BC0; border-radius:50%; animation:spin 0.7s linear infinite; margin:20px 0; }
@@ -38,7 +39,8 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
       <h2 id="heading">You're invited! 👋</h2>
       <p id="subtext">Someone has invited you to join EasyYap — a simple, easy-to-use family chat app.</p>
       <span class="label">Enter your email to join</span>
-      <input class="input" type="email" id="email" placeholder="your@email.com" autocomplete="email">
+      <input class="input" type="email" id="email" placeholder="your@email.com" autocomplete="email"
+        onkeydown="if(event.key==='Enter') joinNow()">
       <button class="btn" id="joinbtn" onclick="joinNow()">✉️ Send me a login link</button>
       <p style="font-size:14px;color:#999;line-height:1.5;">We'll email you a magic link — just tap it to join. No password needed!</p>
     </div>
@@ -64,9 +66,12 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 var SUPABASE_URL = 'https://nasjirsjizhtrzjovfjq.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hc2ppcnNqaXpodHJ6am92ZmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MDcxMDYsImV4cCI6MjA5MTM4MzEwNn0.xuRI3xwxdMVDK8FX1ABIwNT4CXLyAHxYZWKmZTYL4Gw';
+
+// Grab the invite code from the URL e.g. /invite/abc123
 var inviteCode = window.location.pathname.split('/').pop();
 var sb = null;
 
@@ -76,18 +81,9 @@ function show(id) {
   });
 }
 
-function loadScript(src, cb) {
-  var s = document.createElement('script');
-  s.src = src;
-  s.onload = cb;
-  s.onerror = function(){ show('err'); document.getElementById('errmsg').textContent = 'Could not load required libraries. Please check your internet connection and try again.'; };
-  document.head.appendChild(s);
-}
-
-function init() {
-  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  loadInvite();
-}
+// Load Supabase then fetch the invite details
+sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+loadInvite();
 
 function loadInvite() {
   fetch('/api/invites/' + inviteCode)
@@ -102,12 +98,37 @@ function loadInvite() {
       }
       show('main');
     })
-    .catch(function(e){
+    .catch(function(){
       // If invite lookup fails just show the join form anyway
       show('main');
     });
 }
 
-
+function joinNow() {
   var email = document.getElementById('email').value.trim();
-if(!email || !email.includes('@')) { alert('Please enter a valid email address'); return; }
+  if(!email || !email.includes('@')) { alert('Please enter a valid email address'); return; }
+
+  var btn = document.getElementById('joinbtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  // ✅ KEY FIX: Save the invite code so auth-callback.html can use it after login
+  try { localStorage.setItem('easyyap_invite_code', inviteCode); } catch(e){}
+
+  sb.auth.signInWithOtp({
+    email: email,
+    options: { emailRedirectTo: window.location.origin + '/auth/callback' }
+  }).then(function(result){
+    if(result.error){
+      btn.disabled = false;
+      btn.textContent = '✉️ Send me a login link';
+      alert('Something went wrong: ' + result.error.message);
+      return;
+    }
+    document.getElementById('sentemail').textContent = email;
+    show('sent');
+  });
+}
+</script>
+</body>
+</html>
