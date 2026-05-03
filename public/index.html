@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>EasyYap 💬</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#5C6BC0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="EasyYap">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -1398,4 +1403,16 @@ function initApp(){
 </script>
 
 <!-- Supabase loaded here so it's definitely ready when initApp() runs -->
-<script src="https://cdn.jsdel
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="initApp()"></script>
+
+<!-- PWA Service Worker registration -->
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .catch(err => console.log('SW registration failed:', err));
+  });
+}
+</script>
+</body>
+</html>
