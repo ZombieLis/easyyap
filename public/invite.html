@@ -112,12 +112,13 @@ function joinNow() {
   btn.disabled = true;
   btn.textContent = 'Sending…';
 
-  // ✅ KEY FIX: Save the invite code so auth-callback.html can use it after login
-  try { localStorage.setItem('easyyap_invite_code', inviteCode); } catch(e){}
+  // ✅ Pass the invite code directly in the redirect URL so it works across any browser
+  // e.g. /auth/callback?invite=abc123
+  var redirectUrl = window.location.origin + '/auth/callback?invite=' + inviteCode;
 
   sb.auth.signInWithOtp({
     email: email,
-    options: { emailRedirectTo: window.location.origin + '/auth/callback' }
+    options: { emailRedirectTo: redirectUrl }
   }).then(function(result){
     if(result.error){
       btn.disabled = false;
