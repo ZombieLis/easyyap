@@ -66,22 +66,21 @@ async function handleCallback() {
       }
     }
 
-    // ✅ KEY FIX: Check if there's a saved invite code and accept it
-    // This creates the two-way contact link between the inviter and the new user
+    // ✅ KEY FIX: Read invite code from the URL parameter — works across any browser
     if (session) {
       try {
-        const savedCode = localStorage.getItem('easyyap_invite_code');
-        if (savedCode) {
+        // Check URL for ?invite=CODE (set by invite.html when sending the magic link)
+        const urlParams = new URLSearchParams(window.location.search);
+        const inviteCode = urlParams.get('invite');
+        if (inviteCode) {
           document.getElementById('msg').textContent = 'Setting up your contacts… 😊';
-          await fetch('/api/invites/' + savedCode + '/accept', {
+          await fetch('/api/invites/' + inviteCode + '/accept', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer ' + session.access_token
             }
           });
-          // Clear the saved code so it doesn't get used again
-          localStorage.removeItem('easyyap_invite_code');
         }
       } catch(e) {
         // Don't block login if invite accept fails — just continue
