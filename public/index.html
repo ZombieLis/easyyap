@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>EasyYap 💬</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -531,7 +530,6 @@ input[type=range] { width:100%; accent-color:var(--primary); }
 <!-- Toast notification -->
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ════════════════════════════════════════════
 //  SUPABASE INIT
@@ -539,11 +537,8 @@ input[type=range] { width:100%; accent-color:var(--primary); }
 const SUPABASE_URL = 'https://nasjirsjizhtrzjovfjq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hc2ppcnNqaXpodHJ6am92ZmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MDcxMDYsImV4cCI6MjA5MTM4MzEwNn0.xuRI3xwxdMVDK8FX1ABIwNT4CXLyAHxYZWKmZTYL4Gw';
 
+// supabaseClient is created once the Supabase library loads (see script tag below)
 let supabaseClient;
-document.addEventListener('DOMContentLoaded', () => {
-  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  initApp();
-});
 
 // ════════════════════════════════════════════
 //  CONSTANTS
@@ -1378,9 +1373,12 @@ function buildEmoji(){const g=document.getElementById('emoji-grid');EMOJIS.forEa
 function buildGifs(){const g=document.getElementById('gif-grid');GIFS.forEach(({e,l})=>{const d=document.createElement('div');d.className='gif-item';d.innerHTML=`${e}<span class="glabel">${l}</span>`;d.onclick=()=>sendGif(e);g.appendChild(d);});}
 
 // ════════════════════════════════════════════
-//  INIT
+//  INIT — runs once Supabase library is loaded
 // ════════════════════════════════════════════
 function initApp(){
+  // Create the Supabase client here — the library is guaranteed loaded by now
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
   buildSwatches(); buildEmoji(); buildGifs();
   if('speechSynthesis' in window) window.speechSynthesis.getVoices();
 
@@ -1397,7 +1395,7 @@ function initApp(){
     }
   })();
 }
-if('speechSynthesis' in window) window.speechSynthesis.getVoices();
 </script>
-</body>
-</html>
+
+<!-- Supabase loaded here so it's definitely ready when initApp() runs -->
+<script src="https://cdn.jsdel
