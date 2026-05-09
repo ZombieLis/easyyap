@@ -117,7 +117,8 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,s
 .input-top-row {
   display:flex;
   align-items:center;
-  gap:10px;
+  justify-content:space-between;
+  gap:8px;
   margin-bottom:10px;
 }
 
@@ -125,10 +126,9 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,s
 .media-btn-row {
   display:none;
   align-items:center;
-  gap:10px;
-  margin-bottom:10px;
+  gap:8px;
 }
-.media-btn-row.visible { display:flex; }
+.media-btn-row.visible { display:contents; }
 
 /* Full-width textarea */
 textarea.msg-input {
