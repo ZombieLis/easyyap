@@ -105,16 +105,105 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,s
 .member-chips { display:flex; flex-wrap:wrap; gap:6px; padding:8px 14px; background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0; }
 .member-chip { border-radius:16px; padding:4px 12px; font-size:calc(var(--font-size)*0.75); font-weight:700; }
 
-/* INPUT */
-.input-area { background:var(--surface); border-top:1px solid var(--border); padding:8px 10px; flex-shrink:0; }
-.input-row { display:flex; align-items:flex-end; gap:6px; }
-textarea.msg-input { flex:1; border:1.5px solid var(--border); border-radius:22px; padding:10px 16px; font-size:var(--font-size); background:var(--bg); color:var(--other-text); resize:none; outline:none; max-height:120px; line-height:1.45; font-family:inherit; transition:border-color 0.2s; }
+/* ── INPUT AREA — Parkinson's friendly redesign ── */
+.input-area {
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  padding:10px 12px 12px;
+  flex-shrink:0;
+}
+
+/* Top row: mic + send (+ optional media buttons) */
+.input-top-row {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:10px;
+}
+
+/* Media buttons row (hidden by default, shown if user enables) */
+.media-btn-row {
+  display:none;
+  align-items:center;
+  gap:10px;
+  margin-bottom:10px;
+}
+.media-btn-row.visible { display:flex; }
+
+/* Full-width textarea */
+textarea.msg-input {
+  width:100%;
+  border:2px solid var(--border);
+  border-radius:18px;
+  padding:14px 18px;
+  font-size:var(--font-size);
+  background:var(--bg);
+  color:var(--other-text);
+  resize:none;
+  outline:none;
+  max-height:140px;
+  min-height:54px;
+  line-height:1.45;
+  font-family:inherit;
+  transition:border-color 0.2s;
+  display:block;
+}
 textarea.msg-input:focus { border-color:var(--primary); }
 textarea.msg-input::placeholder { color:var(--text-muted); }
-.ibtn { width:50px; height:50px; border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; background:var(--other-bg); color:var(--other-text); transition:transform 0.1s; }
+
+/* Big tap-friendly buttons */
+.ibtn {
+  width:58px;
+  height:58px;
+  border-radius:50%;
+  border:none;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:24px;
+  flex-shrink:0;
+  background:var(--other-bg);
+  color:var(--other-text);
+  transition:transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
 .ibtn:active { transform:scale(0.92); }
 .ibtn.send { background:var(--primary); color:#fff; }
-.ibtn.mic.active { background:#E53935; color:#fff; animation:pulse 0.8s infinite; }
+.ibtn.send:active { background:var(--primary-dark); }
+
+/* Mic button — extra large, clearly distinct */
+.ibtn.mic {
+  width:58px;
+  height:58px;
+  background:var(--other-bg);
+  color:var(--other-text);
+}
+.ibtn.mic.active {
+  background:#E53935;
+  color:#fff;
+  animation:pulse 0.8s infinite;
+}
+
+/* Recording indicator dot in textarea area */
+.rec-dot {
+  display:none;
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  background:#E53935;
+  animation:pulse-dot 0.8s infinite;
+  flex-shrink:0;
+}
+.rec-dot.show { display:inline-block; }
+@keyframes pulse-dot {
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:0.4;transform:scale(0.7)}
+}
+
+/* Spacer to push mic left and send right */
+.input-spacer { flex:1; }
+
 @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
 
 /* OVERLAYS */
@@ -172,6 +261,18 @@ input[type=range] { width:100%; accent-color:var(--primary); }
 .stxt:focus { border-color:var(--primary); }
 .settings-done { width:100%; padding:15px; border:none; background:var(--primary); color:#fff; border-radius:14px; font-size:var(--font-size); font-family:inherit; font-weight:700; cursor:pointer; margin-top:6px; }
 .dark-toggle { padding:12px 20px; border:1.5px solid var(--border); background:var(--other-bg); color:var(--other-text); border-radius:12px; font-size:var(--font-size); font-family:inherit; cursor:pointer; font-weight:600; }
+
+/* Toggle switch */
+.toggle-row { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border); }
+.toggle-row:last-child { border-bottom:none; }
+.toggle-label { font-size:var(--font-size); color:var(--other-text); font-weight:600; flex:1; }
+.toggle-desc { font-size:calc(var(--font-size)*0.75); color:var(--text-muted); margin-top:3px; }
+.toggle-switch { position:relative; width:54px; height:30px; flex-shrink:0; }
+.toggle-switch input { opacity:0; width:0; height:0; }
+.toggle-slider { position:absolute; cursor:pointer; inset:0; background:var(--border); border-radius:30px; transition:0.3s; }
+.toggle-slider:before { position:absolute; content:""; height:22px; width:22px; left:4px; bottom:4px; background:#fff; border-radius:50%; transition:0.3s; }
+input:checked + .toggle-slider { background:var(--primary); }
+input:checked + .toggle-slider:before { transform:translateX(24px); }
 
 /* WORD BANK */
 .word-list { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; min-height:36px; }
@@ -232,7 +333,6 @@ input[type=range] { width:100%; accent-color:var(--primary); }
     <div class="login-logo">💬</div>
     <div class="login-title">EasyYap</div>
     <p class="login-sub">Simple, big and clear family chat — designed to be easy for everyone.</p>
-
     <div id="login-form-area" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:14px;">
       <input class="login-input" type="email" id="login-email" placeholder="Your email address"
         autocomplete="email" inputmode="email">
@@ -243,7 +343,6 @@ input[type=range] { width:100%; accent-color:var(--primary); }
         We'll email you a magic link — just tap it to log in. No password needed!
       </p>
     </div>
-
     <div id="login-sent-area" style="display:none;width:100%;max-width:360px;">
       <div class="login-sent">
         <p>📧 <strong>Check your email!</strong><br><br>
@@ -284,22 +383,31 @@ input[type=range] { width:100%; accent-color:var(--primary); }
   </header>
   <div class="member-chips" id="member-chips" style="display:none;"></div>
   <section class="messages" id="messages"></section>
+
+  <!-- ══ PARKINSON'S FRIENDLY INPUT AREA ══ -->
   <div class="input-area">
-    <div class="input-row">
-      <button class="ibtn" onclick="openGif()"   title="GIF">🎭</button>
-      <button class="ibtn" onclick="pickPhoto()"  title="Photo">📷</button>
-      <button class="ibtn" onclick="openEmoji()"  title="Emoji">😊</button>
-      <textarea class="msg-input" id="msg-input" rows="1" placeholder="Type a message…"
-        oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
-      <button class="ibtn mic" id="mic-btn" onclick="toggleVoice()" title="Voice">🎤</button>
+    <!-- Media buttons row (hidden until user enables in settings) -->
+    <div class="media-btn-row" id="media-btn-row">
+      <button class="ibtn" onclick="openGif()" title="GIF">🎭</button>
+      <button class="ibtn" onclick="pickPhoto()" title="Photo">📷</button>
+      <button class="ibtn" onclick="openEmoji()" title="Emoji">😊</button>
+    </div>
+    <!-- Mic + recording indicator + send row -->
+    <div class="input-top-row">
+      <button class="ibtn mic" id="mic-btn" onclick="toggleVoice()" title="Voice message">🎤</button>
+      <div class="input-spacer"></div>
+      <div class="rec-dot" id="rec-dot"></div>
       <button class="ibtn send" onclick="trySendText()" title="Send">&#10148;</button>
     </div>
+    <!-- Full-width text input -->
+    <textarea class="msg-input" id="msg-input" rows="2" placeholder="Type a message here…"
+      oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
   </div>
 </div>
 
 <!-- Hidden file inputs -->
-<input type="file" id="photo-input"       accept="image/*" style="display:none" onchange="handlePhoto(event)">
-<input type="file" id="my-pic-input"      accept="image/*" style="display:none" onchange="handleMyPic(event)">
+<input type="file" id="photo-input"  accept="image/*" style="display:none" onchange="handlePhoto(event)">
+<input type="file" id="my-pic-input" accept="image/*" style="display:none" onchange="handleMyPic(event)">
 
 <!-- ══ VOICE MODE CHOICE ══ -->
 <div class="overlay center" id="voice-mode-overlay">
@@ -477,6 +585,7 @@ input[type=range] { width:100%; accent-color:var(--primary); }
       <button class="tab-btn active" onclick="showTab('tab-display',this)">Display</button>
       <button class="tab-btn"        onclick="showTab('tab-profile',this)">Profile</button>
       <button class="tab-btn"        onclick="showTab('tab-words',this)">Word Bank</button>
+      <button class="tab-btn"        onclick="showTab('tab-features',this)">Features</button>
     </div>
 
     <div class="tab-content show" id="tab-display">
@@ -528,6 +637,39 @@ input[type=range] { width:100%; accent-color:var(--primary); }
       </div>
     </div>
 
+    <!-- NEW: Features tab -->
+    <div class="tab-content" id="tab-features">
+      <p style="font-size:calc(var(--font-size)*0.85);color:var(--text-muted);margin-bottom:18px;">
+        Turn extra features on or off. Keeping things simple helps avoid accidentally pressing the wrong button.
+      </p>
+
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">😊 Emojis, Photos &amp; GIFs</div>
+          <div class="toggle-desc">Show emoji, photo and GIF buttons when chatting</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-media" onchange="saveMediaToggle(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row" style="margin-top:14px;">
+        <div>
+          <div class="toggle-label">🔔 Notification sound</div>
+          <div class="toggle-desc">Play a sound when a new message arrives</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-sound" onchange="saveSoundToggle(this.checked)" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <p style="font-size:calc(var(--font-size)*0.75);color:var(--text-muted);margin-top:18px;line-height:1.6;">
+        💡 Tip: Keeping emojis and photos hidden makes it much easier to type without accidentally pressing the wrong thing.
+      </p>
+    </div>
+
     <button class="settings-done" onclick="closeSettings()">Done ✓</button>
   </div>
 </div>
@@ -541,8 +683,6 @@ input[type=range] { width:100%; accent-color:var(--primary); }
 // ════════════════════════════════════════════
 const SUPABASE_URL = 'https://nasjirsjizhtrzjovfjq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hc2ppcnNqaXpodHJ6am92ZmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MDcxMDYsImV4cCI6MjA5MTM4MzEwNn0.xuRI3xwxdMVDK8FX1ABIwNT4CXLyAHxYZWKmZTYL4Gw';
-
-// supabaseClient is created once the Supabase library loads (see script tag below)
 let supabaseClient;
 
 // ════════════════════════════════════════════
@@ -572,6 +712,57 @@ let mediaRecorder = null, audioChunks = [];
 let newChatSel = [];
 let inviteMethod = 'copy';
 let dark = false;
+let showMediaButtons = false;
+let notificationSoundEnabled = true;
+
+// ════════════════════════════════════════════
+//  NOTIFICATION SOUND
+// ════════════════════════════════════════════
+function playNotificationSound() {
+  if (!notificationSoundEnabled) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Soft two-tone ping
+    const times = [0, 0.18];
+    const freqs = [880, 1100];
+    times.forEach((t, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freqs[i], ctx.currentTime + t);
+      gain.gain.setValueAtTime(0, ctx.currentTime + t);
+      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.35);
+      osc.start(ctx.currentTime + t);
+      osc.stop(ctx.currentTime + t + 0.4);
+    });
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════
+//  MEDIA TOGGLE
+// ════════════════════════════════════════════
+function applyMediaButtons(enabled) {
+  showMediaButtons = enabled;
+  const row = document.getElementById('media-btn-row');
+  if (row) row.classList.toggle('visible', enabled);
+  const toggle = document.getElementById('toggle-media');
+  if (toggle) toggle.checked = enabled;
+}
+
+async function saveMediaToggle(enabled) {
+  applyMediaButtons(enabled);
+  try {
+    await api('/api/profile', 'PATCH', { show_media_buttons: enabled });
+  } catch(e) { toast('Could not save preference'); }
+}
+
+function saveSoundToggle(enabled) {
+  notificationSoundEnabled = enabled;
+  localStorage.setItem('easyyap_sound', enabled ? '1' : '0');
+}
 
 // ════════════════════════════════════════════
 //  HELPERS
@@ -662,11 +853,26 @@ async function boot(sess){
     document.getElementById('header-username').textContent = myProfile.display_name;
     document.getElementById('my-name').value = myProfile.display_name;
     refreshMyPicDisplay();
+
+    // Apply saved media button preference
+    applyMediaButtons(!!myProfile.show_media_buttons);
+
+    // Apply saved sound preference from localStorage
+    const savedSound = localStorage.getItem('easyyap_sound');
+    notificationSoundEnabled = savedSound !== '0';
+    const soundToggle = document.getElementById('toggle-sound');
+    if (soundToggle) soundToggle.checked = notificationSoundEnabled;
+
     contacts = await api('/api/contacts');
     chats = await api('/api/chats');
     renderChatList();
     showScreen('screen-list');
     subscribeRealtime();
+
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
   } catch(e) {
     toast('Problem loading your account: ' + e.message);
   }
@@ -691,6 +897,25 @@ function subscribeRealtime(){
       chat.last_message = msg;
       if(currentChatId===msg.chat_id) appendMessage(msg);
       renderChatList();
+
+      // Play notification sound
+      playNotificationSound();
+
+      // Show browser notification if app is in background
+      if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+        const chatName = chatDisplayName(chat);
+        const senderName = sender.display_name || 'Someone';
+        const body = msg.type === 'text' ? msg.text :
+                     msg.type === 'image' ? '📷 Photo' :
+                     msg.type === 'voice' ? '🎤 Voice message' :
+                     msg.type === 'gif'   ? '🎭 GIF' : 'New message';
+        new Notification(`${senderName} in ${chatName}`, {
+          body,
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+          tag: msg.chat_id,
+        });
+      }
     })
     .on('postgres_changes', { event:'INSERT', schema:'public', table:'chat_members' }, () => {
       refreshChats();
@@ -802,11 +1027,9 @@ function buildMsgHtml(m, av){
     const bh=[10,18,12,26,14,22,8,20,12,18,10,24,14,20,10];
     const bars=bh.map(h=>`<div class="vbar" style="height:${h}px"></div>`).join('');
     if(m.media_url){
-      // ✅ Real audio recording — play the actual file
       const safeUrl = m.media_url.replace(/'/g, "\\'");
       bubble=`<div class="bubble voice-bubble"><button class="play-btn" onclick="playAudio('${safeUrl}',this)">&#9654;</button><div class="voice-bars">${bars}</div><span class="voice-dur">${m.duration||'0:10'}</span></div>`;
     } else {
-      // Fallback for old messages that only stored text (uses AI voice)
       const safeId='vm_'+m.id;
       window[safeId]=m.text;
       bubble=`<div class="bubble voice-bubble"><button class="play-btn" onclick="speakById('${safeId}')">&#9654;</button><div class="voice-bars">${bars}</div><span class="voice-dur">${m.duration||'0:10'}</span></div>`;
@@ -857,7 +1080,7 @@ function trySendText(){
 }
 function commitSendText(text){ sendMessage({type:'text',text}); }
 function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();trySendText();}}
-function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,140)+'px';}
 
 // ════════════════════════════════════════════
 //  SPELL / GRAMMAR
@@ -921,7 +1144,7 @@ function closeEmoji(){document.getElementById('emoji-overlay').classList.remove(
 function insertEmoji(e){document.getElementById('msg-input').value+=e;closeEmoji();}
 
 // ════════════════════════════════════════════
-//  VOICE — FIXED: now records and plays real audio
+//  VOICE — with echo cancellation + recording indicator
 // ════════════════════════════════════════════
 function toggleVoice(){
   if(isRecording){stopRecording();return;}
@@ -943,18 +1166,26 @@ function startRecording(){
   isRecording=true;
   document.getElementById('mic-btn').classList.add('active');
 
-  // Always run speech recognition so the transcript shows what you said
+  // Show red recording dot in input area
+  document.getElementById('rec-dot').classList.add('show');
+
+  // Speech recognition with echo/noise suppression hints
   if('SpeechRecognition' in window||'webkitSpeechRecognition' in window){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-    recognition=new SR(); recognition.continuous=true; recognition.interimResults=true; recognition.lang='en-AU';
+    recognition=new SR();
+    recognition.continuous=true;
+    recognition.interimResults=true;
+    recognition.lang='en-AU';
+    // Reduce echo by using maxAlternatives=1
+    recognition.maxAlternatives=1;
     recognition.onresult=ev=>{
       let fin='',it='';
       for(let i=ev.resultIndex;i<ev.results.length;i++){
-        if(ev.results[i].isFinal) fin+=ev.results[i][0].transcript;
+        if(ev.results[i].isFinal) fin+=ev.results[i][0].transcript+' ';
         else it+=ev.results[i][0].transcript;
       }
       rawText+=fin;
-      document.getElementById('voice-transcript').textContent=rawText+(it?' '+it:'');
+      document.getElementById('voice-transcript').textContent=(rawText+(it?' '+it:'')).trim();
     };
     recognition.onerror=()=>{
       document.getElementById('voice-transcript').textContent=rawText||'(Could not hear — check microphone permissions)';
@@ -964,18 +1195,25 @@ function startRecording(){
     document.getElementById('voice-transcript').textContent='(Speech recognition not available — Chrome works best)';
   }
 
-  // If voice message mode, ALSO capture real audio with MediaRecorder
+  // MediaRecorder with echo cancellation + noise suppression
   if(voiceMode==='voice'){
-    navigator.mediaDevices.getUserMedia({audio:true})
-      .then(stream=>{
-        mediaRecorder=new MediaRecorder(stream);
-        mediaRecorder.ondataavailable=e=>{ if(e.data.size>0) audioChunks.push(e.data); };
-        mediaRecorder.start();
-      })
-      .catch(()=>{
-        toast('Microphone access denied — please allow mic access and try again');
-        cancelVoice();
-      });
+    navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        sampleRate: 44100
+      }
+    })
+    .then(stream=>{
+      mediaRecorder=new MediaRecorder(stream);
+      mediaRecorder.ondataavailable=e=>{ if(e.data.size>0) audioChunks.push(e.data); };
+      mediaRecorder.start();
+    })
+    .catch(()=>{
+      toast('Microphone access denied — please allow mic access and try again');
+      cancelVoice();
+    });
   }
 }
 
@@ -983,12 +1221,11 @@ function stopRecording(){
   if(recognition){recognition.stop();recognition=null;}
   isRecording=false;
   document.getElementById('mic-btn').classList.remove('active');
+  document.getElementById('rec-dot').classList.remove('show');
 
   if(voiceMode==='voice'){
-    // Stop MediaRecorder and upload the real audio file
     if(mediaRecorder && mediaRecorder.state!=='inactive'){
       mediaRecorder.onstop=async()=>{
-        // Release the microphone
         mediaRecorder.stream.getTracks().forEach(t=>t.stop());
         if(!audioChunks.length){ cancelVoice(); return; }
         document.getElementById('voice-status').textContent='Sending…';
@@ -1014,7 +1251,6 @@ function stopRecording(){
       cancelVoice();
     }
   } else {
-    // Voice-to-text mode — spell check and review
     const text=rawText.trim()||document.getElementById('voice-transcript').textContent.trim();
     if(!text||text.startsWith('(')||text==='Speak now — your words will appear here'){ cancelVoice(); return; }
     rawText=text;
@@ -1024,7 +1260,6 @@ function stopRecording(){
   }
 }
 
-// Convert a Blob to a base64 string for uploading
 function blobToBase64(blob){
   return new Promise((resolve,reject)=>{
     const r=new FileReader();
@@ -1034,7 +1269,6 @@ function blobToBase64(blob){
   });
 }
 
-// Estimate duration from file size (webm audio ~15KB/sec)
 function calcDuration(byteSize){
   const secs=Math.max(1,Math.round(byteSize/15000));
   return secs<60?`0:${String(secs).padStart(2,'0')}`:`${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`;
@@ -1071,10 +1305,10 @@ function cancelVoice(){
   mediaRecorder=null; audioChunks=[];
   isRecording=false;
   document.getElementById('mic-btn').classList.remove('active');
+  document.getElementById('rec-dot').classList.remove('show');
   document.getElementById('voice-overlay').classList.remove('show');
 }
 
-// Play a real audio file when the play button is tapped
 function playAudio(url, btn){
   const audio=new Audio(url);
   btn.textContent='⏸';
@@ -1083,7 +1317,6 @@ function playAudio(url, btn){
   audio.onerror=()=>{ btn.innerHTML='&#9654;'; toast('Could not play audio'); };
 }
 
-// Fallback for old messages: read text with AI voice
 function speakById(id){ speak(window[id]||''); }
 function speak(text){
   if(!text||!('speechSynthesis' in window)) return;
@@ -1311,7 +1544,13 @@ function fallbackCopy(text){
 // ════════════════════════════════════════════
 //  SETTINGS
 // ════════════════════════════════════════════
-function openSettings(){ renderWordList(); document.getElementById('settings-overlay').classList.add('show'); }
+function openSettings(){
+  renderWordList();
+  // Sync toggles with current state
+  document.getElementById('toggle-media').checked = showMediaButtons;
+  document.getElementById('toggle-sound').checked = notificationSoundEnabled;
+  document.getElementById('settings-overlay').classList.add('show');
+}
 function closeSettings(){ document.getElementById('settings-overlay').classList.remove('show'); }
 function showTab(id,btn){ document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('show')); document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); document.getElementById(id).classList.add('show'); btn.classList.add('active'); }
 function setFont(v){css('--font-size',v+'px');document.getElementById('font-preview').textContent=`Aa — Text looks like this at ${v}px`;}
@@ -1378,12 +1617,10 @@ function buildEmoji(){const g=document.getElementById('emoji-grid');EMOJIS.forEa
 function buildGifs(){const g=document.getElementById('gif-grid');GIFS.forEach(({e,l})=>{const d=document.createElement('div');d.className='gif-item';d.innerHTML=`${e}<span class="glabel">${l}</span>`;d.onclick=()=>sendGif(e);g.appendChild(d);});}
 
 // ════════════════════════════════════════════
-//  INIT — runs once Supabase library is loaded
+//  INIT
 // ════════════════════════════════════════════
 function initApp(){
-  // Create the Supabase client here — the library is guaranteed loaded by now
   supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
   buildSwatches(); buildEmoji(); buildGifs();
   if('speechSynthesis' in window) window.speechSynthesis.getVoices();
 
@@ -1402,10 +1639,8 @@ function initApp(){
 }
 </script>
 
-<!-- Supabase loaded here so it's definitely ready when initApp() runs -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="initApp()"></script>
 
-<!-- PWA Service Worker registration -->
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
