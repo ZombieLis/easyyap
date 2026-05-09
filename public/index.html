@@ -752,11 +752,11 @@ function applyMediaButtons(enabled) {
 
 async function saveMediaToggle(enabled) {
   applyMediaButtons(enabled);
+  localStorage.setItem('easyyap_media', enabled ? '1' : '0');
   try {
     await api('/api/profile', 'PATCH', { show_media_buttons: enabled });
   } catch(e) { toast('Could not save preference'); }
 }
-
 function saveSoundToggle(enabled) {
   notificationSoundEnabled = enabled;
   localStorage.setItem('easyyap_sound', enabled ? '1' : '0');
