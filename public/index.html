@@ -386,14 +386,11 @@ input:checked + .toggle-slider:before { transform:translateX(24px); }
 
   <!-- ══ PARKINSON'S FRIENDLY INPUT AREA ══ -->
   <div class="input-area">
-    <!-- Media buttons row (hidden until user enables in settings) -->
-    <div class="media-btn-row" id="media-btn-row">
-      <button class="ibtn" onclick="openGif()" title="GIF">🎭</button>
-      <button class="ibtn" onclick="pickPhoto()" title="Photo">📷</button>
-      <button class="ibtn" onclick="openEmoji()" title="Emoji">😊</button>
-    </div>
-    <!-- Mic + recording indicator + send row -->
+ <!-- Single button row — media buttons hidden until enabled -->
     <div class="input-top-row">
+      <button class="ibtn media-btn" id="btn-gif" onclick="openGif()" title="GIF" style="display:none">🎭</button>
+      <button class="ibtn media-btn" id="btn-photo" onclick="pickPhoto()" title="Photo" style="display:none">📷</button>
+      <button class="ibtn media-btn" id="btn-emoji" onclick="openEmoji()" title="Emoji" style="display:none">😊</button>
       <button class="ibtn mic" id="mic-btn" onclick="toggleVoice()" title="Voice message">🎤</button>
       <div class="input-spacer"></div>
       <div class="rec-dot" id="rec-dot"></div>
@@ -746,8 +743,7 @@ function playNotificationSound() {
 // ════════════════════════════════════════════
 function applyMediaButtons(enabled) {
   showMediaButtons = enabled;
-  const row = document.getElementById('media-btn-row');
-  if (row) row.classList.toggle('visible', enabled);
+  document.querySelectorAll('.media-btn').forEach(b => b.style.display = enabled ? 'flex' : 'none');
   const toggle = document.getElementById('toggle-media');
   if (toggle) toggle.checked = enabled;
 }
