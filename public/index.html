@@ -852,8 +852,10 @@ async function boot(sess){
     document.getElementById('my-name').value = myProfile.display_name;
     refreshMyPicDisplay();
 
-    // Apply saved media button preference
-    applyMediaButtons(!!myProfile.show_media_buttons);
+  // Apply saved media button preference — localStorage first for instant load
+    const savedMedia = localStorage.getItem('easyyap_media');
+    const mediaEnabled = savedMedia !== null ? savedMedia === '1' : !!myProfile.show_media_buttons;
+    applyMediaButtons(mediaEnabled);
 
     // Apply saved sound preference from localStorage
     const savedSound = localStorage.getItem('easyyap_sound');
