@@ -1150,10 +1150,22 @@ function toggleVoice(){
   if(isRecording){stopRecording();return;}
   document.getElementById('voice-mode-overlay').classList.add('show');
 }
-function closeVoiceMode(){document.getElementById('voice-mode-overlay').classList.remove('show');}
-function startVoiceMode(mode){ voiceMode=mode; closeVoiceMode(); startRecording(); }
-
-function startRecording(){
+function startVoiceMode(mode){
+  voiceMode=mode;
+  closeVoiceMode();
+  if(mode==='text'){
+    // On mobile, use native keyboard mic instead of Web Speech API
+    const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if(isMobile){
+      document.getElementById('voice-overlay').classList.remove('show');
+      const inp=document.getElementById('msg-input');
+      inp.focus();
+      toast('🎤 Tap the mic on your keyboard to speak!', 4000);
+      return;
+    }
+  }
+  startRecording();
+}
   rawText=''; correctedText=''; audioChunks=[];
   document.getElementById('voice-transcript').textContent='Speak now — your words will appear here';
   document.getElementById('voice-status').textContent='Listening…';
