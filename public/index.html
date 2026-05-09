@@ -1177,12 +1177,17 @@ function startRecording(){
     // Reduce echo by using maxAlternatives=1
     recognition.maxAlternatives=1;
     recognition.onresult=ev=>{
-      let fin='',it='';
+      let it='';
       for(let i=ev.resultIndex;i<ev.results.length;i++){
-        if(ev.results[i].isFinal) fin+=ev.results[i][0].transcript+' ';
-        else it+=ev.results[i][0].transcript;
+        if(ev.results[i].isFinal){
+          const t=ev.results[i][0].transcript.trim();
+          if(t && rawText.slice(-t.length).trim()!==t){
+            rawText+=(rawText?' ':'')+t;
+          }
+        } else {
+          it+=ev.results[i][0].transcript;
+        }
       }
-      rawText+=fin;
       document.getElementById('voice-transcript').textContent=(rawText+(it?' '+it:'')).trim();
     };
     recognition.onerror=()=>{
