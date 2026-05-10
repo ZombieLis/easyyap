@@ -812,9 +812,11 @@ async function sendMagicLink(){
   const btn = document.getElementById('login-btn');
   btn.disabled = true; btn.textContent = 'Sending…';
   try {
-    const { error } = await supabaseClient.auth.signInWithOtp({
+  const { error } = await supabaseClient.auth.signInWithOtp({
       email,
-     options: { emailRedirectTo: 'https://easyyap-1.onrender.com' }
+      options: { emailRedirectTo: window.location.origin + '/auth/callback' }
+    });
+    if(error) throw error;
     document.getElementById('sent-email-display').textContent = email;
     document.getElementById('login-form-area').style.display = 'none';
     document.getElementById('login-sent-area').style.display = 'block';
