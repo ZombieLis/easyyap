@@ -814,8 +814,7 @@ async function sendMagicLink(){
   try {
     const { error } = await supabaseClient.auth.signInWithOtp({
       email,
-     options: { emailRedirectTo: window.location.origin }
-    if(error) throw error;
+     options: { emailRedirectTo: 'https://easyyap-1.onrender.com' }
     document.getElementById('sent-email-display').textContent = email;
     document.getElementById('login-form-area').style.display = 'none';
     document.getElementById('login-sent-area').style.display = 'block';
