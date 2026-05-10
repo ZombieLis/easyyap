@@ -113,22 +113,16 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,s
   flex-shrink:0;
 }
 
-/* Top row: mic + send (+ optional media buttons) */
+/* Single button row — all buttons in one horizontal line */
 .input-top-row {
   display:flex;
+  flex-direction:row;
   align-items:center;
-  gap:10px;
+  justify-content:space-between;
+  gap:8px;
   margin-bottom:10px;
+  width:100%;
 }
-
-/* Media buttons row (hidden by default, shown if user enables) */
-.media-btn-row {
-  display:none;
-  align-items:center;
-  gap:10px;
-  margin-bottom:10px;
-}
-.media-btn-row.visible { display:flex; }
 
 /* Full-width textarea */
 textarea.msg-input {
@@ -386,14 +380,11 @@ input:checked + .toggle-slider:before { transform:translateX(24px); }
 
   <!-- ══ PARKINSON'S FRIENDLY INPUT AREA ══ -->
   <div class="input-area">
-    <!-- Media buttons row (hidden until user enables in settings) -->
-    <div class="media-btn-row" id="media-btn-row">
-      <button class="ibtn" onclick="openGif()" title="GIF">🎭</button>
-      <button class="ibtn" onclick="pickPhoto()" title="Photo">📷</button>
-      <button class="ibtn" onclick="openEmoji()" title="Emoji">😊</button>
-    </div>
-    <!-- Mic + recording indicator + send row -->
+    <!-- Single button row — media buttons hidden until enabled in settings -->
     <div class="input-top-row">
+      <button class="ibtn media-btn" id="btn-gif"   onclick="openGif()"   title="GIF"   style="display:none">🎭</button>
+      <button class="ibtn media-btn" id="btn-photo" onclick="pickPhoto()" title="Photo" style="display:none">📷</button>
+      <button class="ibtn media-btn" id="btn-emoji" onclick="openEmoji()" title="Emoji" style="display:none">😊</button>
       <button class="ibtn mic" id="mic-btn" onclick="toggleVoice()" title="Voice message">🎤</button>
       <div class="input-spacer"></div>
       <div class="rec-dot" id="rec-dot"></div>
@@ -746,14 +737,14 @@ function playNotificationSound() {
 // ════════════════════════════════════════════
 function applyMediaButtons(enabled) {
   showMediaButtons = enabled;
-  const row = document.getElementById('media-btn-row');
-  if (row) row.classList.toggle('visible', enabled);
+  document.querySelectorAll('.media-btn').forEach(b => b.style.display = enabled ? 'flex' : 'none');
   const toggle = document.getElementById('toggle-media');
   if (toggle) toggle.checked = enabled;
 }
 
 async function saveMediaToggle(enabled) {
   applyMediaButtons(enabled);
+  localStorage.setItem('easyyap_media', enabled ? '1' : '0');
   try {
     await api('/api/profile', 'PATCH', { show_media_buttons: enabled });
   } catch(e) { toast('Could not save preference'); }
@@ -854,8 +845,10 @@ async function boot(sess){
     document.getElementById('my-name').value = myProfile.display_name;
     refreshMyPicDisplay();
 
-    // Apply saved media button preference
-    applyMediaButtons(!!myProfile.show_media_buttons);
+    // Apply saved media button preference — localStorage first for instant load
+    const savedMedia = localStorage.getItem('easyyap_media');
+    const mediaEnabled = savedMedia !== null ? savedMedia === '1' : !!myProfile.show_media_buttons;
+    applyMediaButtons(mediaEnabled);
 
     // Apply saved sound preference from localStorage
     const savedSound = localStorage.getItem('easyyap_sound');
@@ -1151,7 +1144,20 @@ function toggleVoice(){
   document.getElementById('voice-mode-overlay').classList.add('show');
 }
 function closeVoiceMode(){document.getElementById('voice-mode-overlay').classList.remove('show');}
-function startVoiceMode(mode){ voiceMode=mode; closeVoiceMode(); startRecording(); }
+function startVoiceMode(mode){
+  voiceMode=mode;
+  closeVoiceMode();
+  if(mode==='text'){
+    const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if(isMobile){
+      const inp=document.getElementById('msg-input');
+      inp.focus();
+      toast('🎤 Tap the mic on your keyboard to speak!', 4000);
+      return;
+    }
+  }
+  startRecording();
+}
 
 function startRecording(){
   rawText=''; correctedText=''; audioChunks=[];
