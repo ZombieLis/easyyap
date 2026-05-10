@@ -116,21 +116,19 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,s
 /* Top row: mic + send (+ optional media buttons) */
 .input-top-row {
   display:flex;
-  flex-direction:row;
   align-items:center;
-  justify-content:space-between;
-  gap:8px;
+  gap:10px;
   margin-bottom:10px;
-  width:100%;
 }
 
 /* Media buttons row (hidden by default, shown if user enables) */
 .media-btn-row {
   display:none;
   align-items:center;
-  gap:8px;
+  gap:10px;
+  margin-bottom:10px;
 }
-.media-btn-row.visible { display:contents; }
+.media-btn-row.visible { display:flex; }
 
 /* Full-width textarea */
 textarea.msg-input {
@@ -388,11 +386,14 @@ input:checked + .toggle-slider:before { transform:translateX(24px); }
 
   <!-- ══ PARKINSON'S FRIENDLY INPUT AREA ══ -->
   <div class="input-area">
- <!-- Single button row — media buttons hidden until enabled -->
+    <!-- Media buttons row (hidden until user enables in settings) -->
+    <div class="media-btn-row" id="media-btn-row">
+      <button class="ibtn" onclick="openGif()" title="GIF">🎭</button>
+      <button class="ibtn" onclick="pickPhoto()" title="Photo">📷</button>
+      <button class="ibtn" onclick="openEmoji()" title="Emoji">😊</button>
+    </div>
+    <!-- Mic + recording indicator + send row -->
     <div class="input-top-row">
-      <button class="ibtn media-btn" id="btn-gif" onclick="openGif()" title="GIF" style="display:none">🎭</button>
-      <button class="ibtn media-btn" id="btn-photo" onclick="pickPhoto()" title="Photo" style="display:none">📷</button>
-      <button class="ibtn media-btn" id="btn-emoji" onclick="openEmoji()" title="Emoji" style="display:none">😊</button>
       <button class="ibtn mic" id="mic-btn" onclick="toggleVoice()" title="Voice message">🎤</button>
       <div class="input-spacer"></div>
       <div class="rec-dot" id="rec-dot"></div>
@@ -745,18 +746,19 @@ function playNotificationSound() {
 // ════════════════════════════════════════════
 function applyMediaButtons(enabled) {
   showMediaButtons = enabled;
-  document.querySelectorAll('.media-btn').forEach(b => b.style.display = enabled ? 'flex' : 'none');
+  const row = document.getElementById('media-btn-row');
+  if (row) row.classList.toggle('visible', enabled);
   const toggle = document.getElementById('toggle-media');
   if (toggle) toggle.checked = enabled;
 }
 
 async function saveMediaToggle(enabled) {
   applyMediaButtons(enabled);
-  localStorage.setItem('easyyap_media', enabled ? '1' : '0');
   try {
     await api('/api/profile', 'PATCH', { show_media_buttons: enabled });
   } catch(e) { toast('Could not save preference'); }
 }
+
 function saveSoundToggle(enabled) {
   notificationSoundEnabled = enabled;
   localStorage.setItem('easyyap_sound', enabled ? '1' : '0');
@@ -812,7 +814,7 @@ async function sendMagicLink(){
   const btn = document.getElementById('login-btn');
   btn.disabled = true; btn.textContent = 'Sending…';
   try {
-  const { error } = await supabaseClient.auth.signInWithOtp({
+    const { error } = await supabaseClient.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: window.location.origin + '/auth/callback' }
     });
@@ -852,10 +854,8 @@ async function boot(sess){
     document.getElementById('my-name').value = myProfile.display_name;
     refreshMyPicDisplay();
 
-  // Apply saved media button preference — localStorage first for instant load
-    const savedMedia = localStorage.getItem('easyyap_media');
-    const mediaEnabled = savedMedia !== null ? savedMedia === '1' : !!myProfile.show_media_buttons;
-    applyMediaButtons(mediaEnabled);
+    // Apply saved media button preference
+    applyMediaButtons(!!myProfile.show_media_buttons);
 
     // Apply saved sound preference from localStorage
     const savedSound = localStorage.getItem('easyyap_sound');
@@ -1150,22 +1150,10 @@ function toggleVoice(){
   if(isRecording){stopRecording();return;}
   document.getElementById('voice-mode-overlay').classList.add('show');
 }
-function startVoiceMode(mode){
-  voiceMode=mode;
-  closeVoiceMode();
-  if(mode==='text'){
-    // On mobile, use native keyboard mic instead of Web Speech API
-    const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if(isMobile){
-      document.getElementById('voice-overlay').classList.remove('show');
-      const inp=document.getElementById('msg-input');
-      inp.focus();
-      toast('🎤 Tap the mic on your keyboard to speak!', 4000);
-      return;
-    }
-  }
-  startRecording();
-}
+function closeVoiceMode(){document.getElementById('voice-mode-overlay').classList.remove('show');}
+function startVoiceMode(mode){ voiceMode=mode; closeVoiceMode(); startRecording(); }
+
+function startRecording(){
   rawText=''; correctedText=''; audioChunks=[];
   document.getElementById('voice-transcript').textContent='Speak now — your words will appear here';
   document.getElementById('voice-status').textContent='Listening…';
@@ -1190,17 +1178,13 @@ function startVoiceMode(mode){
     recognition.lang='en-AU';
     // Reduce echo by using maxAlternatives=1
     recognition.maxAlternatives=1;
-    recognition.continuous=false;
     recognition.onresult=ev=>{
-      let it='';
+      let fin='',it='';
       for(let i=ev.resultIndex;i<ev.results.length;i++){
-        if(ev.results[i].isFinal){
-          const t=ev.results[i][0].transcript.trim();
-          if(t) rawText+=(rawText?' ':'')+t;
-        } else {
-          it+=ev.results[i][0].transcript;
-        }
+        if(ev.results[i].isFinal) fin+=ev.results[i][0].transcript+' ';
+        else it+=ev.results[i][0].transcript;
       }
+      rawText+=fin;
       document.getElementById('voice-transcript').textContent=(rawText+(it?' '+it:'')).trim();
     };
     recognition.onerror=()=>{
