@@ -443,8 +443,8 @@
 
 <script>
   const TOTAL = 50;
-  let stars = 0;
-  let celebrated = false;
+  let stars = parseInt(localStorage.getItem('jaysonStars') || '0');
+  let celebrated = localStorage.getItem('jaysonCelebrated') === 'true';
 
   // Build background stars
   const bgContainer = document.getElementById('bgStars');
@@ -484,11 +484,13 @@
   function addStar() {
     if (stars >= TOTAL) return;
     stars++;
+    localStorage.setItem('jaysonStars', stars);
     const cell = document.getElementById('cell-' + (stars - 1));
     cell.className = 'star-cell earned';
     updateUI();
     if (stars === TOTAL && !celebrated) {
       celebrated = true;
+      localStorage.setItem('jaysonCelebrated', 'true');
       setTimeout(() => {
         showCelebration();
       }, 400);
@@ -500,6 +502,7 @@
     const cell = document.getElementById('cell-' + (stars - 1));
     cell.className = 'star-cell empty';
     stars--;
+    localStorage.setItem('jaysonStars', stars);
     updateUI();
   }
 
@@ -507,6 +510,8 @@
     if (confirm('Are you sure you want to start over? All stars will be removed.')) {
       stars = 0;
       celebrated = false;
+      localStorage.setItem('jaysonStars', '0');
+      localStorage.setItem('jaysonCelebrated', 'false');
       buildGrid();
       updateUI();
     }
