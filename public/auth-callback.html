@@ -35,7 +35,6 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 
 async function handleCallback() {
   try {
-    // Get the full URL hash and params
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const queryParams = new URLSearchParams(window.location.search);
 
@@ -43,38 +42,60 @@ async function handleCallback() {
     const refreshToken = hashParams.get('refresh_token');
     const code = queryParams.get('code');
 
+    let session = null;
+
     if (accessToken) {
-      // Set the session directly from the token in the URL
       const { data, error } = await supabaseClient.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken
       });
       if (error) throw error;
-      document.getElementById('msg').textContent = "You're in! 🎉 Taking you to EasyYap…";
-      setTimeout(() => { window.location.href = '/'; }, 1500);
+      session = data.session;
 
     } else if (code) {
-      // Exchange the code for a session
       const { data, error } = await supabaseClient.auth.exchangeCodeForSession(code);
       if (error) throw error;
-      document.getElementById('msg').textContent = "You're in! 🎉 Taking you to EasyYap…";
-      setTimeout(() => { window.location.href = '/'; }, 1500);
+      session = data.session;
 
     } else {
-      // Try getting existing session
       const { data, error } = await supabaseClient.auth.getSession();
       if (data?.session) {
-        document.getElementById('msg').textContent = "You're in! 🎉 Taking you to EasyYap…";
-        setTimeout(() => { window.location.href = '/'; }, 1500);
+        session = data.session;
       } else {
         throw new Error('No login token found — please try requesting a new link.');
       }
     }
+
+    // ✅ KEY FIX: Read invite code from the URL parameter — works across any browser
+    if (session) {
+      try {
+        // Check URL for ?invite=CODE (set by invite.html when sending the magic link)
+        const urlParams = new URLSearchParams(window.location.search);
+        const inviteCode = urlParams.get('invite');
+        if (inviteCode) {
+          document.getElementById('msg').textContent = 'Setting up your contacts… 😊';
+          await fetch('/api/invites/' + inviteCode + '/accept', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + session.access_token
+            }
+          });
+        }
+      } catch(e) {
+        // Don't block login if invite accept fails — just continue
+        console.log('Invite accept failed:', e);
+      }
+    }
+
+    document.getElementById('msg').textContent = "You're in! 🎉 Taking you to EasyYap…";
+    setTimeout(() => { window.location.href = '/'; }, 1500);
+
   } catch(e) {
     document.querySelector('.spinner').style.display = 'none';
     document.getElementById('msg').textContent = 'Something went wrong.';
     document.getElementById('error-box').style.display = 'block';
-    document.getElementById('error-box').innerHTML = 
+    document.getElementById('error-box').innerHTML =
       `<div class="error">${e.message}</div>
        <a class="btn" href="/">← Try again</a>`;
   }

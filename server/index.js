@@ -6,12 +6,13 @@ const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 // ── Supabase admin client (service role — never expose to browser)
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY,
+ process.env.SUPABASE_SERVICE_ROLE_KEY,
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
